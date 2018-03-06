@@ -3,6 +3,7 @@ package io.vertx.example.foundation
 import io.vertx.core.Vertx
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.handler.ErrorHandler
+import io.vertx.ext.web.templ.PebbleTemplateEngine
 import io.vertx.kotlin.coroutines.dispatcher
 import kotlinx.coroutines.experimental.CoroutineDispatcher
 
@@ -11,6 +12,7 @@ open class KExpress : KRouter() {
     companion object {
         val vertx: Vertx = Vertx.vertx()
         val dispatcher: CoroutineDispatcher = vertx.dispatcher()
+        val engine: PebbleTemplateEngine = PebbleTemplateEngine.create(KExpress.vertx)
         var globalErrorHandler: ErrorHandler? = null
     }
 

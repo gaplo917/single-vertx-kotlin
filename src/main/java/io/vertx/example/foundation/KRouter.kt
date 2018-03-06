@@ -4,13 +4,26 @@ import io.vertx.core.http.HttpServerRequest
 import io.vertx.core.http.HttpServerResponse
 import io.vertx.core.json.Json
 import io.vertx.example.foundation.KExpress.Companion.dispatcher
+import io.vertx.example.foundation.KExpress.Companion.engine
 import io.vertx.example.foundation.KExpress.Companion.vertx
 import io.vertx.ext.web.Route
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.handler.impl.TemplateHandlerImpl
 import kotlinx.coroutines.experimental.launch
 
 abstract class KRouter : Router by Router.router(vertx) {
+    fun <T> Route.renderHTML(templatePath: String, f: (RoutingContext) -> T): Route {
+        return this.handler(
+            object: TemplateHandlerImpl(engine, this::class.java.getResource(templatePath).path,"text/html") {
+                override fun handle(context: RoutingContext) {
+                    f(context)
+                    super.handle(context)
+                }
+            }
+        )
+    }
+
     fun <T> Route.handleCoroutine(f: suspend (RoutingContext) -> T): Route {
         return this.handler { req ->
             launch(dispatcher) {

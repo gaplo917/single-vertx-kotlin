@@ -4,14 +4,19 @@ import com.github.salomonbrys.kodein.Kodein
 import com.github.salomonbrys.kodein.bind
 import com.github.salomonbrys.kodein.provider
 import io.vertx.example.foundation.KExpress
+import io.vertx.example.foundation.KExpress.Companion.vertx
 import io.vertx.example.middlewares.BasicAuth
 import io.vertx.example.middlewares.Logging
 import io.vertx.example.repositories.UserRepository
 import io.vertx.example.repositories.UserRepositoryImpl
 import io.vertx.example.routes.IndexRouter
 import io.vertx.example.routes.UserRouter
+import io.vertx.example.services.User
 import io.vertx.example.services.UserService
 import io.vertx.example.services.UserServiceImpl
+import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.handler.impl.TemplateHandlerImpl
+import io.vertx.ext.web.templ.PebbleTemplateEngine
 
 val Injection = Kodein {
     val userModule = Kodein.Module {
@@ -31,7 +36,7 @@ fun main(args: Array<String>) {
 
     app.use("/", IndexRouter())
 
-    //app.use("/users", UserRouter())
+    app.use("/users", UserRouter())
 
     app.listen(8080)
 }

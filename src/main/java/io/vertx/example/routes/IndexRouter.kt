@@ -1,25 +1,29 @@
 package io.vertx.example.routes
 
 import io.vertx.example.foundation.KRouter
+import io.vertx.example.services.User
 import kotlinx.coroutines.experimental.delay
-import java.util.concurrent.CompletableFuture
 
 class IndexRouter : KRouter() {
     init {
-        get("/").handleCoroutine { req ->
-            req.response().end("OK")
+        get("/index.html").renderHTML("/templates/index.peb") { context ->
+            context.data()["user"] = User(id = 2, name = "Gary")
         }
-        get("/2ms").handleCoroutine { req ->
+
+        get("/").handleCoroutine { req, res ->
+            res.end("OK")
+        }
+        get("/2ms").handleCoroutine { req, res ->
             delay(2)
-            req.response().end("OK")
+            res.end("OK")
         }
-        get("/5ms").handleCoroutine { req ->
+        get("/5ms").handleCoroutine { req, res ->
             delay(5)
-            req.response().end("OK")
+            res.end("OK")
         }
-        get("/10ms").handleCoroutine { req ->
+        get("/10ms").handleCoroutine { req, res ->
             delay(10)
-            req.response().end("OK")
+            res.end("OK")
         }
     }
 }
