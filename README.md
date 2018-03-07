@@ -14,10 +14,10 @@ examples:
 
 ## Running
 
-The most convenient way to run the project during development is as follows:
+The most convenient way to start the project during development is as follows:
 
 ```
-./gradlew run
+./gradlew start
 ```
 
 That way, any changes to the classes will be picked up and re-deployed automatically.
