@@ -1,4 +1,6 @@
-package io.vertx.example
+package io.vertx.example.repositories
+
+import io.vertx.example.services.User
 
 interface UserRepository {
   fun findUsers(): List<User>
@@ -6,6 +8,6 @@ interface UserRepository {
 
 class UserRepositoryImpl(): UserRepository {
   override fun findUsers(): List<User> {
-    return listOf(User(1,"gary"), User(2, "george"))
+    return listOf(User(1, "gary"), User(2, "george"))
   }
 }

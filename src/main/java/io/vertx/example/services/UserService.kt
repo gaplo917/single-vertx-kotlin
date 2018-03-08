@@ -1,4 +1,4 @@
-package io.vertx.example
+package io.vertx.example.services
 
 data class User(
   val id: Long,

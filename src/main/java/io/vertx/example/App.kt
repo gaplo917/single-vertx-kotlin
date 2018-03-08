@@ -2,6 +2,10 @@ package io.vertx.example
 
 import com.github.salomonbrys.kodein.*
 import io.vertx.core.Vertx
+import io.vertx.example.repositories.UserRepository
+import io.vertx.example.repositories.UserRepositoryImpl
+import io.vertx.example.services.UserService
+import io.vertx.example.services.UserServiceImpl
 import io.vertx.ext.web.Router
 import org.jetbrains.annotations.TestOnly
 

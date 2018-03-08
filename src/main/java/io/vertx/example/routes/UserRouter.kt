@@ -4,6 +4,9 @@ import com.github.salomonbrys.kodein.instance
 import com.github.salomonbrys.kodein.lazy
 import io.vertx.example.*
 import io.vertx.example.extensions.vertx.json
+import io.vertx.example.repositories.UserRepository
+import io.vertx.example.services.User
+import io.vertx.example.services.UserService
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 
