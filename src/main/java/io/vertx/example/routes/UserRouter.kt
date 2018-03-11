@@ -2,32 +2,32 @@ package io.vertx.example.routes
 
 import com.github.salomonbrys.kodein.instance
 import com.github.salomonbrys.kodein.lazy
-import io.vertx.example.*
-import io.vertx.example.extensions.vertx.json
+import io.vertx.core.json.Json
+import io.vertx.example.Injection
+import io.vertx.example.foundation.KRouter
 import io.vertx.example.repositories.UserRepository
 import io.vertx.example.services.User
 import io.vertx.example.services.UserService
-import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 
-class UserRouter : Router by Router.router(App.kodein.instance()) {
+class UserRouter : KRouter() {
 
-  private val userRepository: UserRepository by App.kodein.lazy.instance()
+    private val userRepository: UserRepository by Injection.lazy.instance()
 
-  private val userService: UserService by App.kodein.lazy.instance()
+    private val userService: UserService by Injection.lazy.instance()
 
-  init {
-    get("/").json { listUsers(it) }
+    init {
+        get("/").json { req -> listUsers(req) }
 
-    get("/:id").json { getUserById(it) }
-  }
+        get("/:id").json { req -> getUserById(req) }
 
-  private fun getUserById(req: RoutingContext): User {
-    val id = req.pathParam("id")?.toLong() ?: throw IllegalArgumentException()
-    return userService.findUserById(id)
-  }
+    }
+    private suspend fun getUserById(req: RoutingContext): User {
+        val id = req.pathParam("id")?.toLong() ?: throw IllegalArgumentException()
+        return userService.findUserById(id)
+    }
 
-  private fun listUsers(req: RoutingContext): List<User>{
-    return userRepository.findUsers()
-  }
+    private fun listUsers(req: RoutingContext): List<User> {
+        return userRepository.findUsers()
+    }
 }

@@ -1,13 +1,25 @@
 package io.vertx.example.routes
 
-import com.github.salomonbrys.kodein.instance
-import io.vertx.example.App
-import io.vertx.ext.web.Router
+import io.vertx.example.foundation.KRouter
+import kotlinx.coroutines.experimental.delay
+import java.util.concurrent.CompletableFuture
 
-class IndexRouter : Router by Router.router(App.kodein.instance()) {
-  init {
-    get("/").handler { req ->
-      req.response().end("index page")
+class IndexRouter : KRouter() {
+    init {
+        get("/").handleCoroutine { req ->
+            req.response().end("OK")
+        }
+        get("/2ms").handleCoroutine { req ->
+            delay(2)
+            req.response().end("OK")
+        }
+        get("/5ms").handleCoroutine { req ->
+            delay(5)
+            req.response().end("OK")
+        }
+        get("/10ms").handleCoroutine { req ->
+            delay(10)
+            req.response().end("OK")
+        }
     }
-  }
 }
