@@ -1,9 +1,8 @@
 package io.vertx.example.routes
 
 import io.vertx.example.foundation.KRouter
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
-import kotlin.coroutines.experimental.suspendCoroutine
 
 class IndexRouter : KRouter() {
     init {
@@ -22,11 +21,9 @@ class IndexRouter : KRouter() {
     }
 
     suspend fun fakeIOOperation(duration: Long): String {
-        return suspendCoroutine {
-            launch {
-                delay(duration)
-                it.resume("OK")
-            }
-        }
+        return async {
+          delay(duration)
+          "OK"
+        }.await()
     }
 }
