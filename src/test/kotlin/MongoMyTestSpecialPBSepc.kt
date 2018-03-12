@@ -16,24 +16,6 @@ class MongoMyTestSpecialPBSepc : FeatureSpec() {
         val bytes = ByteArray(10).also { Random().nextBytes(it) }
         val byteString = ByteString.copyFrom(bytes)
 
-        val _hello = "world"
-        val _foobar = Int.MAX_VALUE
-        val _bazinga = Long.MAX_VALUE
-        val _optEnum = TestV3.MyEnumV3.V2
-        val _optBs = byteString
-        val _optBool = true
-        val _optDouble = Double.MAX_VALUE
-        val _optFloat = Float.MAX_VALUE
-        val _primitiveSequenceList = listOf("a","b","c")
-        val _repMessageList = listOf(TestV3.MyTestV3.getDefaultInstance())
-        val _stringToInt32Map = mapOf("mingchuno" to 12345)
-        val _intToMytestMap = mapOf(1 to TestV3.MyTestV3.getDefaultInstance())
-        val _repEnumList = listOf(TestV3.MyEnumV3.V1, TestV3.MyEnumV3.V2)
-        val _intToEnumMap = mapOf(1 to TestV3.MyEnumV3.V2)
-        val _boolToStringMap = mapOf(true to "mingchuno")
-        val _stringToBoolMap = mapOf("mingchuno" to true)
-        val _fixed64ToBytesMap = mapOf(Long.MIN_VALUE to ByteString.copyFrom(bytes))
-
         val _seconds = 100L
         val _nanos = 100
         val testString = "Testing"

@@ -1,40 +1,32 @@
-package io.vertx.example.repositories
+package io.vertx.example.foundation.protobuf
 
 import com.google.common.io.BaseEncoding
 import com.google.protobuf.*
-import com.google.protobuf.util.Durations
 import com.google.protobuf.util.FieldMaskUtil
 import com.google.protobuf.Any as PBAny
-import com.google.protobuf.util.JsonFormat
 import org.bson.BsonBinary
 import org.bson.BsonWriter
-import java.io.IOException
 import java.util.*
 
-internal class WriterImpl(
-  private val alwaysOutputDefaultValueFields: Boolean,
-  private val includingDefaultValueFields: Set<Descriptors.FieldDescriptor>,
-  private val preservingProtoFieldNames: Boolean,
+
+private typealias WellKnownTypeWriter = (PBBsonWriter, MessageOrBuilder) -> Unit
+
+internal class PBBsonWriter(
+  private val includingDefaultValueFields: Boolean = true,
+  private val preservingProtoFieldNames: Boolean = false,
   private val writer: BsonWriter
 ) {
 
-  @Throws(IOException::class)
   fun write(message: MessageOrBuilder) {
     val specialWriter = wellKnownTypeWriters[message.descriptorForType.fullName]
     if (specialWriter != null) {
-      specialWriter.write(this, message)
+      specialWriter.invoke(this, message)
       return
     }
     write(message, null)
   }
 
-  private interface WellKnownTypeWriter {
-    @Throws(IOException::class)
-    fun write(writer: WriterImpl, message: MessageOrBuilder)
-  }
-
-  /** Prints google.protobuf.Any  */
-  @Throws(IOException::class)
+  /** Write google.protobuf.Any  */
   private fun writeAny(message: MessageOrBuilder) {
     if (PBAny.getDefaultInstance() == message) {
       writer.writeStartDocument()
@@ -50,7 +42,7 @@ internal class WriterImpl(
       || valueField == null
       || typeUrlField.type != Descriptors.FieldDescriptor.Type.STRING
       || valueField.type != Descriptors.FieldDescriptor.Type.BYTES) {
-      throw InvalidProtocolBufferException("Invalid Any type.")
+      throw PBCodecEncodeException("Invalid Any type.")
     }
     val typeUrl = message.getField(typeUrlField) as String
     val value = message.getField(valueField) as ByteString
@@ -60,11 +52,10 @@ internal class WriterImpl(
     writer.writeEndDocument()
   }
 
-  /** Prints wrapper types (e.g., google.protobuf.Int32Value)  */
-  @Throws(IOException::class)
+  /** Write wrapper types (e.g., google.protobuf.Int32Value)  */
   private fun writeWrapper(message: MessageOrBuilder) {
     val descriptor = message.descriptorForType
-    val valueField = descriptor.findFieldByName("value") ?: throw InvalidProtocolBufferException("Invalid Wrapper type.")
+    val valueField = descriptor.findFieldByName("value") ?: throw PBCodecEncodeException("Invalid Wrapper type.")
     // When formatting wrapper types, we just write its value field instead of
     // the whole message.
     writeSingleFieldValue(valueField, message.getField(valueField))
@@ -78,41 +69,21 @@ internal class WriterImpl(
     }
   }
 
-//  /** Prints google.protobuf.Timestamp  */
-//  @Throws(IOException::class)
-//  private fun writeTimestamp(message: MessageOrBuilder) {
-//    val value = Timestamp.parseFrom(toByteString(message))
-//    writer.writeStartDocument()
-//    writer.writeInt64("seconds", value.seconds)
-//    writer.writeInt32("nanos", value.nanos)
-//    writer.writeEndDocument()
-//  }
-//
-//  /** Prints google.protobuf.Duration  */
-//  @Throws(IOException::class)
-//  private fun writeDuration(message: MessageOrBuilder) {
-//    val value = Duration.parseFrom(toByteString(message))
-//    writer.writeString(Durations.toString(value))
-//  }
-
-  /** Prints google.protobuf.FieldMask  */
-  @Throws(IOException::class)
+  /** Write google.protobuf.FieldMask  */
   private fun writeFieldMask(message: MessageOrBuilder) {
     val value = FieldMask.parseFrom(toByteString(message))
     writer.writeString(FieldMaskUtil.toJsonString(value))
   }
 
-  /** Prints google.protobuf.Struct  */
-  @Throws(IOException::class)
+  /** Write google.protobuf.Struct  */
   private fun writeStruct(message: MessageOrBuilder) {
     val descriptor = message.descriptorForType
-    val field = descriptor.findFieldByName("fields") ?: throw InvalidProtocolBufferException("Invalid Struct type.")
+    val field = descriptor.findFieldByName("fields") ?: throw PBCodecEncodeException("Invalid Struct type.")
     // Struct is formatted as a map object.
     writeMapFieldValue(field, message.getField(field))
   }
 
-  /** Prints google.protobuf.Value  */
-  @Throws(IOException::class)
+  /** Write google.protobuf.Value  */
   private fun writeValue(message: MessageOrBuilder) {
     // For a Value message, only the value of the field is formatted.
     val fields = message.allFields
@@ -131,16 +102,14 @@ internal class WriterImpl(
     }
   }
 
-  /** Prints google.protobuf.ListValue  */
-  @Throws(IOException::class)
+  /** Write google.protobuf.ListValue  */
   private fun writeListValue(message: MessageOrBuilder) {
     val descriptor = message.descriptorForType
-    val field = descriptor.findFieldByName("values") ?: throw InvalidProtocolBufferException("Invalid ListValue type.")
+    val field = descriptor.findFieldByName("values") ?: throw PBCodecEncodeException("Invalid ListValue type.")
     writeRepeatedFieldValue(field, message.getField(field))
   }
 
-  /** Prints a regular message with an optional type URL.  */
-  @Throws(IOException::class)
+  /** Write a regular message with an optional type URL.  */
   private fun write(message: MessageOrBuilder, typeUrl: String?) {
     writer.writeStartDocument()
 
@@ -149,7 +118,8 @@ internal class WriterImpl(
     }
 
     val fieldsToWrite: MutableMap<Descriptors.FieldDescriptor, Any>
-    if (alwaysOutputDefaultValueFields || !includingDefaultValueFields.isEmpty()) {
+
+    if (includingDefaultValueFields) {
       fieldsToWrite = TreeMap(message.allFields)
       for (field in message.descriptorForType.fields) {
         if (field.isOptional) {
@@ -164,7 +134,7 @@ internal class WriterImpl(
             continue
           }
         }
-        if (!fieldsToWrite.containsKey(field) && (alwaysOutputDefaultValueFields || includingDefaultValueFields.contains(field))) {
+        if (!fieldsToWrite.containsKey(field) && includingDefaultValueFields) {
           fieldsToWrite.put(field, message.getField(field))
         }
       }
@@ -177,7 +147,6 @@ internal class WriterImpl(
     writer.writeEndDocument()
   }
 
-  @Throws(IOException::class)
   private fun writeField(field: Descriptors.FieldDescriptor, value: Any) {
     if (preservingProtoFieldNames) {
       writer.writeName(field.name)
@@ -191,7 +160,6 @@ internal class WriterImpl(
     }
   }
 
-  @Throws(IOException::class)
   private fun writeRepeatedFieldValue(field: Descriptors.FieldDescriptor, value: Any) {
     writer.writeStartArray()
     @Suppress("unchecked_cast")
@@ -201,13 +169,12 @@ internal class WriterImpl(
     writer.writeEndArray()
   }
 
-  @Throws(IOException::class)
   private fun writeMapFieldValue(field: Descriptors.FieldDescriptor, value: Any) {
     val type = field.messageType
     val keyField = type.findFieldByName("key")
     val valueField = type.findFieldByName("value")
     if (keyField == null || valueField == null) {
-      throw InvalidProtocolBufferException("Invalid map field.")
+      throw PBCodecEncodeException("Invalid map field.")
     }
     writer.writeStartDocument()
 
@@ -230,88 +197,98 @@ internal class WriterImpl(
    * @param isWritingName whether to always add double-quotes to primitive
    * types.
    */
-  @Throws(IOException::class)
   private fun writeSingleFieldValue(
     field: Descriptors.FieldDescriptor, value: Any, isWritingName: Boolean = false) {
-    when (field.type) {
-      Descriptors.FieldDescriptor.Type.INT32, Descriptors.FieldDescriptor.Type.SINT32, Descriptors.FieldDescriptor.Type.SFIXED32, Descriptors.FieldDescriptor.Type.UINT32, Descriptors.FieldDescriptor.Type.FIXED32 -> {
+    when (field.type!!) {
+      Descriptors.FieldDescriptor.Type.INT32, Descriptors.FieldDescriptor.Type.SINT32,
+      Descriptors.FieldDescriptor.Type.SFIXED32, Descriptors.FieldDescriptor.Type.UINT32,
+      Descriptors.FieldDescriptor.Type.FIXED32 -> {
+        val typedValue = value as Int
         if (isWritingName) {
-          writer.writeName((value as Int).toString())
+          writer.writeName(typedValue.toString())
         } else {
-          writer.writeInt32(value as Int)
+          writer.writeInt32(typedValue)
         }
       }
 
-      Descriptors.FieldDescriptor.Type.INT64, Descriptors.FieldDescriptor.Type.SINT64, Descriptors.FieldDescriptor.Type.SFIXED64, Descriptors.FieldDescriptor.Type.UINT64, Descriptors.FieldDescriptor.Type.FIXED64 -> {
+      Descriptors.FieldDescriptor.Type.INT64, Descriptors.FieldDescriptor.Type.SINT64,
+      Descriptors.FieldDescriptor.Type.SFIXED64, Descriptors.FieldDescriptor.Type.UINT64,
+      Descriptors.FieldDescriptor.Type.FIXED64 -> {
+        val typedValue = value as Long
         if (isWritingName) {
-          writer.writeName((value as Long).toString())
+          writer.writeName(typedValue.toString())
         } else {
-          writer.writeInt64(value as Long)
+          writer.writeInt64(typedValue)
         }
       }
 
       Descriptors.FieldDescriptor.Type.BOOL -> {
+        val typedValue = value as Boolean
+
         if (isWritingName) {
-          writer.writeName((value as Boolean).toString())
+          writer.writeName(typedValue.toString())
         } else {
-          writer.writeBoolean(value as Boolean)
+          writer.writeBoolean(typedValue)
         }
       }
 
       Descriptors.FieldDescriptor.Type.FLOAT -> {
-        val floatValue = value as Float
-        if (floatValue.isNaN()) {
+        val typedValue = value as Float
+        if (typedValue.isNaN()) {
           writer.writeDouble(Double.NaN)
-        } else if (floatValue.isInfinite()) {
-          if (floatValue < 0) {
+        } else if (typedValue.isInfinite()) {
+          if (typedValue < 0) {
             writer.writeDouble(Double.NEGATIVE_INFINITY)
           } else {
             writer.writeDouble(Double.POSITIVE_INFINITY)
           }
         } else {
           if (isWritingName) {
-            writer.writeName((value).toString())
+            writer.writeName(typedValue.toString())
           } else {
-            writer.writeDouble(value.toDouble())
+            writer.writeDouble(typedValue.toDouble())
           }
         }
       }
 
       Descriptors.FieldDescriptor.Type.DOUBLE -> {
-        val floatValue = value as Double
-        if (floatValue.isNaN()) {
+        val typedValue = value as Double
+        if (typedValue.isNaN()) {
           writer.writeDouble(Double.NaN)
-        } else if (floatValue.isInfinite()) {
-          if (floatValue < 0) {
+        } else if (typedValue.isInfinite()) {
+          if (typedValue < 0) {
             writer.writeDouble(Double.NEGATIVE_INFINITY)
           } else {
             writer.writeDouble(Double.POSITIVE_INFINITY)
           }
         } else {
           if (isWritingName) {
-            writer.writeName((value).toString())
+            writer.writeName(typedValue.toString())
           } else {
-            writer.writeDouble(value)
+            writer.writeDouble(typedValue)
           }
         }
       }
         Descriptors.FieldDescriptor.Type.STRING -> {
-        if(isWritingName){
-          writer.writeName(value as String)
-        } else {
-          writer.writeString(value as String)
-        }
+          val typedValue = value as String
+          if(isWritingName){
+            writer.writeName(typedValue)
+          } else {
+            writer.writeString(typedValue)
+          }
       }
 
       Descriptors.FieldDescriptor.Type.BYTES -> {
+        val typedValue = value as ByteString
+
         if(isWritingName){
-          writer.writeName(BaseEncoding.base64().encode((value as ByteString).toByteArray()))
+          writer.writeName(BaseEncoding.base64().encode(typedValue.toByteArray()))
         } else {
-          writer.writeBinaryData(BsonBinary((value as ByteString).toByteArray()))
+          writer.writeBinaryData(BsonBinary(typedValue.toByteArray()))
         }
       }
 
-      Descriptors.FieldDescriptor.Type.ENUM ->
+      Descriptors.FieldDescriptor.Type.ENUM -> {
         // Special-case google.protobuf.NullValue (it's an Enum).
         if (field.enumType.fullName == "google.protobuf.NullValue") {
           // No matter what value it contains, we always write it as "null".
@@ -322,21 +299,24 @@ internal class WriterImpl(
           }
         } else {
           if ((value as Descriptors.EnumValueDescriptor).index == -1) {
-            if(isWritingName){
+            if (isWritingName) {
               writer.writeName(value.number.toString())
             } else {
               writer.writeInt32(value.number)
             }
           } else {
-            if(isWritingName){
+            if (isWritingName) {
               writer.writeName(value.name)
             } else {
               writer.writeString(value.name)
             }
           }
         }
+      }
 
-      Descriptors.FieldDescriptor.Type.MESSAGE, Descriptors.FieldDescriptor.Type.GROUP -> write(value as Message)
+      Descriptors.FieldDescriptor.Type.MESSAGE, Descriptors.FieldDescriptor.Type.GROUP -> {
+        write(value as Message)
+      }
     }
   }
 
@@ -345,86 +325,44 @@ internal class WriterImpl(
     private val wellKnownTypeWriters = buildWellKnownTypeWrites()
 
     private fun buildWellKnownTypeWrites(): Map<String, WellKnownTypeWriter> {
-      val writers = HashMap<String, WellKnownTypeWriter>()
+      val writers = mutableMapOf<String, WellKnownTypeWriter>()
       // Special-case Any.
-      writers.put(
-        PBAny.getDescriptor().fullName,
-        object : WellKnownTypeWriter {
-          @Throws(IOException::class)
-          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-            writer.writeAny(message)
-          }
-        })
-      // Special-case wrapper types.
-      val wrappersWriter = object : WellKnownTypeWriter {
-        @Throws(IOException::class)
-        override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-          writer.writeWrapper(message)
-        }
+      writers[PBAny.getDescriptor().fullName] = { writer, message ->
+        writer.writeAny(message)
       }
-      writers.put(BoolValue.getDescriptor().fullName, wrappersWriter)
-      writers.put(Int32Value.getDescriptor().fullName, wrappersWriter)
-      writers.put(UInt32Value.getDescriptor().fullName, wrappersWriter)
-      writers.put(Int64Value.getDescriptor().fullName, wrappersWriter)
-      writers.put(UInt64Value.getDescriptor().fullName, wrappersWriter)
-      writers.put(StringValue.getDescriptor().fullName, wrappersWriter)
-      writers.put(BytesValue.getDescriptor().fullName, wrappersWriter)
-      writers.put(FloatValue.getDescriptor().fullName, wrappersWriter)
-      writers.put(DoubleValue.getDescriptor().fullName, wrappersWriter)
-      // Special-case Timestamp.
-//      writers.put(
-//        Timestamp.getDescriptor().fullName,
-//        object : WellKnownTypeWriter {
-//          @Throws(IOException::class)
-//          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-//            writer.writeTimestamp(message)
-//          }
-//        })
-//      // Special-case Duration.
-//      writers.put(
-//        Duration.getDescriptor().fullName,
-//        object : WellKnownTypeWriter {
-//          @Throws(IOException::class)
-//          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-//            writer.writeDuration(message)
-//          }
-//        })
-      // Special-case FieldMask.
-      writers.put(
-        FieldMask.getDescriptor().fullName,
-        object : WellKnownTypeWriter {
-          @Throws(IOException::class)
-          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-            writer.writeFieldMask(message)
-          }
-        })
+
+      // Special-case wrapper types.
+      val wrappersWriter = { writer: PBBsonWriter, message: MessageOrBuilder ->
+          writer.writeWrapper(message)
+      }
+
+      writers[BoolValue.getDescriptor().fullName] =  wrappersWriter
+      writers[Int32Value.getDescriptor().fullName] =  wrappersWriter
+      writers[UInt32Value.getDescriptor().fullName] =  wrappersWriter
+      writers[Int64Value.getDescriptor().fullName] =  wrappersWriter
+      writers[UInt64Value.getDescriptor().fullName] =  wrappersWriter
+      writers[StringValue.getDescriptor().fullName] =  wrappersWriter
+      writers[BytesValue.getDescriptor().fullName] =  wrappersWriter
+      writers[FloatValue.getDescriptor().fullName] =  wrappersWriter
+      writers[DoubleValue.getDescriptor().fullName] =  wrappersWriter
+
+      writers[FieldMask.getDescriptor().fullName] = { writer, message ->
+        writer.writeFieldMask(message)
+      }
+
       // Special-case Struct.
-      writers.put(
-        Struct.getDescriptor().fullName,
-        object : WellKnownTypeWriter {
-          @Throws(IOException::class)
-          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-            writer.writeStruct(message)
-          }
-        })
+      writers[Struct.getDescriptor().fullName] = { writer, message ->
+        writer.writeStruct(message)
+      }
+
       // Special-case Value.
-      writers.put(
-        Value.getDescriptor().fullName,
-        object : WellKnownTypeWriter {
-          @Throws(IOException::class)
-          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-            writer.writeValue(message)
-          }
-        })
+      writers[Value.getDescriptor().fullName] = { writer, message ->
+        writer.writeValue(message)
+      }
       // Special-case ListValue.
-      writers.put(
-        ListValue.getDescriptor().fullName,
-        object : WellKnownTypeWriter {
-          @Throws(IOException::class)
-          override fun write(writer: WriterImpl, message: MessageOrBuilder) {
-            writer.writeListValue(message)
-          }
-        })
+      writers[ListValue.getDescriptor().fullName] = { writer, message ->
+        writer.writeListValue(message)
+      }
       return writers
     }
   }
