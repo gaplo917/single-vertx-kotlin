@@ -6,17 +6,23 @@ import kotlinx.coroutines.experimental.delay
 
 class IndexRouter : KRouter() {
     init {
-        get("/").handleCoroutine { _ ,res ->
+        get("/"){ _ ,res ->
             res.send("OK")
+        }.failure { err, req ->
+            println("exception = e=${err}")
         }
 
-        get("/10ms").handleCoroutine { _ ,res ->
+        get("/10ms"){ _ ,res ->
             res.send(fakeIOOperation(10))
+        }.failure { err, req, res ->
+            println("exception = e=${err.message}")
+            res.send("error = ${err.message}")
         }
     }
 
     suspend fun fakeIOOperation(duration: Long): String {
         return async {
+            throw IllegalArgumentException("test")
           delay(duration)
           "OK"
         }.await()

@@ -13,30 +13,52 @@ import kotlinx.coroutines.experimental.launch
 
 @Suppress("NOTHING_TO_INLINE")
 abstract class KRouter : Router by Router.router(vertx) {
-    inline fun <T> Route.handleCoroutine(noinline f: suspend (RoutingContext) -> T): Route {
-        return this.handler { req ->
+    inline fun Route.handleCoroutine(noinline f: suspend (RoutingContext) -> Unit): Route {
+        return this.handler { ctx ->
             launch(dispatcher) {
                 try {
-                    f(req)
+                    f(ctx)
                 } catch (e: Throwable) {
-                    e.printStackTrace()
-
-                    KExpress.globalErrorHandler?.handle(req)
-
-                    if (!req.response().ended()) {
-                        req.response().end()
-                    }
+                    ctx.fail(e)
                 }
             }
         }
     }
 
-    inline fun <T> Route.handleCoroutine(noinline f: suspend (HttpServerRequest, HttpServerResponse) -> T): Route {
-        return this.handleCoroutine { req -> f(req.request(), req.response()) }
+    inline fun Route.handleCoroutine(noinline f: suspend (HttpServerRequest, HttpServerResponse) -> Unit): Route {
+        return this.handleCoroutine { ctx -> f(ctx.request(), ctx.response()) }
     }
 
-    inline fun <T> Route.handleCoroutine(noinline f: suspend (HttpServerRequest, HttpServerResponse, () -> Unit) -> T): Route {
-        return this.handleCoroutine { req -> f(req.request(), req.response(), req::next) }
+    inline fun Route.handleCoroutine(noinline f: suspend (HttpServerRequest, HttpServerResponse, () -> Unit) -> Unit): Route {
+        return this.handleCoroutine { ctx -> f(ctx.request(), ctx.response(), ctx::next) }
+    }
+
+    inline fun Router.get(path: String, noinline f: suspend (RoutingContext) -> Unit): Route {
+        return this.get(path).handleCoroutine(f)
+    }
+
+    inline fun Router.get(path: String, noinline f: suspend (HttpServerRequest, HttpServerResponse) -> Unit): Route {
+        return this.get(path).handleCoroutine(f)
+    }
+
+    inline fun Router.get(path: String, noinline f: suspend (HttpServerRequest, HttpServerResponse, () -> Unit) -> Unit): Route {
+        return this.get(path).handleCoroutine(f)
+    }
+
+    inline fun Route.failure(crossinline f: (Throwable) -> Unit): Route {
+        return this.failureHandler { ctx -> f(ctx.failure())  }
+    }
+
+    inline fun Route.failure(crossinline f: (Throwable, RoutingContext) -> Unit): Route {
+        return this.failureHandler { ctx -> f(ctx.failure(), ctx)  }
+    }
+
+    inline fun Route.failure(crossinline f: (Throwable, HttpServerRequest, HttpServerResponse) -> Unit): Route {
+        return this.failureHandler { ctx -> f(ctx.failure(), ctx.request(), ctx.response())  }
+    }
+
+    inline fun Route.failure(crossinline f: (Throwable, HttpServerRequest, HttpServerResponse, () -> Unit) -> Unit): Route {
+        return this.failureHandler { ctx -> f(ctx.failure(), ctx.request(), ctx.response(), ctx::next)  }
     }
 
     inline fun HttpServerResponse.send(chunk: String) {

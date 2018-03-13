@@ -3,6 +3,7 @@ package io.vertx.example
 import com.github.salomonbrys.kodein.Kodein
 import com.github.salomonbrys.kodein.bind
 import com.github.salomonbrys.kodein.provider
+import io.vertx.core.Handler
 import io.vertx.example.foundation.KExpress
 import io.vertx.example.middlewares.BasicAuth
 import io.vertx.example.middlewares.Logging
@@ -32,6 +33,10 @@ fun main(args: Array<String>) {
     app.use("/", IndexRouter())
 
     //app.use("/users", UserRouter())
+
+//    app.use(Handler { e: Throwable ->
+//        println("exception handler, e=${e.message}")
+//    })
 
     app.listen(8080)
 }

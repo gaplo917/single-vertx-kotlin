@@ -1,8 +1,8 @@
 package io.vertx.example.foundation
 
+import io.vertx.core.Handler
 import io.vertx.core.Vertx
 import io.vertx.ext.web.Router
-import io.vertx.ext.web.handler.ErrorHandler
 import io.vertx.kotlin.coroutines.dispatcher
 import kotlinx.coroutines.experimental.CoroutineDispatcher
 
@@ -11,7 +11,6 @@ open class KExpress : KRouter() {
     companion object {
         val vertx: Vertx = Vertx.vertx()
         val dispatcher: CoroutineDispatcher = vertx.dispatcher()
-        var globalErrorHandler: ErrorHandler? = null
     }
 
     fun listen(port: Int) {
@@ -49,8 +48,8 @@ open class KExpress : KRouter() {
         mountSubRouter("/", middleware)
     }
 
-    fun use(globalErrorHandler: ErrorHandler) {
-        Companion.globalErrorHandler = globalErrorHandler
+    fun use(exceptionHandler: Handler<Throwable>) {
+        this.exceptionHandler(exceptionHandler)
     }
 
 }

@@ -3,13 +3,11 @@ package io.vertx.example.routes
 import com.github.salomonbrys.kodein.instance
 import com.github.salomonbrys.kodein.lazy
 import io.vertx.core.http.HttpServerRequest
-import io.vertx.core.json.Json
 import io.vertx.example.Injection
 import io.vertx.example.foundation.KRouter
 import io.vertx.example.repositories.UserRepository
 import io.vertx.example.services.User
 import io.vertx.example.services.UserService
-import io.vertx.ext.web.RoutingContext
 
 class UserRouter : KRouter() {
 
@@ -18,11 +16,11 @@ class UserRouter : KRouter() {
     private val userService: UserService by Injection.lazy.instance()
 
     init {
-        get("/").handleCoroutine { req, res ->
+        get("/"){ req, res ->
             res.json(listUsers())
         }
 
-        get("/:id").handleCoroutine { req, res ->
+        get("/:id"){ req, res ->
             res.json(getUserById(req))
         }
 
