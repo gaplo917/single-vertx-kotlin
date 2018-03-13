@@ -9,12 +9,7 @@ class IndexRouter : KRouter() {
         get("/").handleCoroutine { _ ,res ->
             res.send("OK")
         }
-        get("/2ms").handleCoroutine { _ ,res ->
-            res.send(fakeIOOperation(2))
-        }
-        get("/5ms").handleCoroutine { _ ,res ->
-            res.send(fakeIOOperation(5))
-        }
+
         get("/10ms").handleCoroutine { _ ,res ->
             res.send(fakeIOOperation(10))
         }

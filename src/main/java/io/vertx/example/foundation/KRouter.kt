@@ -39,20 +39,6 @@ abstract class KRouter : Router by Router.router(vertx) {
         return this.handleCoroutine { req -> f(req.request(), req.response(), req::next) }
     }
 
-    inline fun <T> Route.json(noinline f: suspend (RoutingContext) -> T): Route {
-        return this.handleCoroutine { req ->
-            req.response().putHeader("Content-Type", "application/json").end(Json.encode(f(req)))
-        }
-    }
-
-    inline fun <T> Route.json(noinline f: suspend (HttpServerRequest, HttpServerResponse) -> T): Route {
-        return this.json { req -> f(req.request(), req.response()) }
-    }
-
-    inline fun <T> Route.json(noinline f: suspend (HttpServerRequest, HttpServerResponse, () -> Unit) -> T): Route {
-        return this.json { req -> f(req.request(), req.response(), req::next) }
-    }
-
     inline fun HttpServerResponse.send(chunk: String) {
         this.end(chunk)
     }
@@ -63,5 +49,9 @@ abstract class KRouter : Router by Router.router(vertx) {
 
     inline fun HttpServerResponse.send(chunk: String, enc: String) {
         this.end(chunk, enc)
+    }
+
+    inline fun HttpServerResponse.json(obj: Any) {
+        this.putHeader("Content-Type", "application/json").end(Json.encode(obj))
     }
 }
