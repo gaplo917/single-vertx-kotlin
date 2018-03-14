@@ -35,12 +35,12 @@ dependencies {
     // dependency injector
     compile 'com.github.salomonbrys.kodein:kodein:4.1.0'
 
-    // logging
-    compile 'org.apache.logging.log4j:log4j-api:2.10.0'
-    compile 'org.apache.logging.log4j:log4j-core:2.10.0'
-
     // JWT
     compile 'io.vertx:vertx-auth-jwt:3.5.1'
+
+    // logging
+    compile 'io.github.microutils:kotlin-logging:1.4.9'
+    compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.10.0'
 
     testCompile 'io.kotlintest:kotlintest:2.0.7'
 

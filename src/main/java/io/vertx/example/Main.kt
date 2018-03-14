@@ -13,6 +13,7 @@ import io.vertx.example.routes.IndexRouter
 import io.vertx.example.routes.UserRouter
 import io.vertx.example.services.UserService
 import io.vertx.example.services.UserServiceImpl
+import mu.KotlinLogging
 
 val Injection = Kodein {
     val userModule = Kodein.Module {
@@ -24,19 +25,21 @@ val Injection = Kodein {
 }
 
 fun main(args: Array<String>) {
+    val logger = KotlinLogging.logger { }
+
     val app = KExpress()
 
-    //app.use(Logging())
+    app.use(Logging())
 
     //app.use(BasicAuth())
 
     app.use("/", IndexRouter())
 
-    //app.use("/users", UserRouter())
+    app.use("/users", UserRouter())
 
-//    app.use(Handler { e: Throwable ->
-//        println("exception handler, e=${e.message}")
-//    })
+    app.use(Handler { e: Throwable ->
+        logger.error { "exception handler, e=${e.message}" }
+    })
 
     app.listen(8080)
 }

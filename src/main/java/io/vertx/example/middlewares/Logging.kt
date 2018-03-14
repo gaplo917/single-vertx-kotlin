@@ -1,16 +1,15 @@
 package io.vertx.example.middlewares
 
-import io.vertx.core.logging.Logger
 import io.vertx.example.foundation.KRouter
-import io.vertx.example.foundation.Loggable
 import io.vertx.example.foundation.Middleware
+import mu.KotlinLogging
 
-class Logging : KRouter(), Loggable, Middleware {
-    override val logger: Logger = createLogger()
+class Logging : KRouter(), Middleware {
+    private val logger = KotlinLogging.logger { }
 
     init {
         route().handleCoroutine { req, _, next ->
-            logger.info(req.path())
+            logger.debug(req.path())
             next()
         }
     }
