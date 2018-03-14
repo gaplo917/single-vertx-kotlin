@@ -22,7 +22,6 @@ class IndexRouter : KRouter() {
 
     suspend fun fakeIOOperation(duration: Long): String {
         return async {
-            throw IllegalArgumentException("test")
           delay(duration)
           "OK"
         }.await()
