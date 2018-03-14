@@ -1,54 +1,26 @@
-# Vert.x Kotlin Example
+# Single Verticle Vert.x for using Microservice
 
-Basic JSON API written in [Kotlin](https://kotlinlang.org/) to demonstrate how it can be used with Vert.x.
+The main purpose of this performance-test is to verify my implementation of https://github.com/gaplo917/single-vertx-kotlin.
 
-This project is built on Gradle and is ready to be deployed on Heroku, hence it combines parts of the following 
-examples:
+Vert.x is incredibly flexible and performant. I started to use Vert.x Koltin to build stateless API Server and targeted to build a express-liked API in Kotlin.
 
-- Gradle:
-    - [gradle-redeploy](https://github.com/vert-x3/vertx-examples/tree/master/gradle-redeploy)
-    - [gradle-simplest](https://github.com/vert-x3/vertx-examples/tree/master/gradle-simplest)
-    - [gradle-verticles](https://github.com/vert-x3/vertx-examples/tree/master/gradle-verticles)
-- Heroku:
-    - [heroku-example](https://github.com/vert-x3/vertx-examples/tree/master/heroku-example)
+But with the power of kubernetes, the "Multiple Verticle" may not be suitable for running stateless Vert.x in microservice architecture because any stateless service can be scaled horizontally on demand.
 
-## Running
+# Methodology
+Using Vert.x event-loop to process request and handle all request in kotlin coroutine way 
 
-The most convenient way to start the project during development is as follows:
+# Benchmark 
+https://github.com/gaplo917/web-framework-benchmark
 
-```
-./gradlew start
-```
+# Thin wrapper to make Express-like API
+Learning new web framework is pain and time-consuming. 
 
-That way, any changes to the classes will be picked up and re-deployed automatically.
-
-## Deploying
-
-The application can either be deployed manually (with a jar file) or to [Heroku](https://www.heroku.com/).
-
-### Manually
-
-You can generate a single "shadow jar" (more on that [here](https://github.com/johnrengelman/shadow)) as follows:
-
-```
-./gradlew shadowJar
-```
-
-The jar file can now be retrieved from `./build/libs/app-shadow.jar` and deployed onto your preferred platform.
-
-### Heroku
-
-This project includes a custom `Procfile` to simplify deployment to Heroku, however you would need to place the 
-contents of this example into a separate Git repository first (because the global [`Procfile`](https://github.com/vert-x3/vertx-examples/blob/master/Procfile) 
-in the root directory points to the `heroku-example`).
+Thanks to Kotlin language design(extension & inline func), I can make a thin wrapper to wrap all vert.x components to
+ make a `KExpress` without having any performance penalty. `KExpress` is designed for people who come from `expressjs`
  
-Once in your new Git repository, install the [Heroku Toolbelt](https://toolbelt.heroku.com/) and issue the 
-following:
+This project is under active development for investigate express use case.
+ 
+A separate project will be published as `KExpress` when I feel it is ready. Feel free to contribute by opening github issue
 
-```
-heroku login
-heroku create
-git push heroku master
-```
-
-*Note:* All your changes must be committed to Git before issuing the last command.
+### Progress 
+    TODO
