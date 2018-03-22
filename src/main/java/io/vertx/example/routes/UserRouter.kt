@@ -25,6 +25,17 @@ class UserRouter : KRouter() {
             res.json(getUserById(req))
         }
 
+        post("/create").handler { ctx ->
+            val user = userRepository.createUser("abc123")
+            ctx.response().json(user)
+        }
+
+        post("/:id/update").handler { ctx ->
+            val id = ctx.request().params()["id"]?.toInt() ?: throw MissParamException(missingKey = "id")
+            val user = userRepository.updateUser(id, "def123")
+            ctx.response().json(user)
+        }
+
     }
     private suspend fun getUserById(req: HttpServerRequest): VertxUser {
         val id = req.params()["id"]?.toInt() ?: throw MissParamException(missingKey = "id")
