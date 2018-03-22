@@ -1,13 +1,12 @@
 package io.vertx.example.middlewares
 
-import io.vertx.core.json.Json
-import io.vertx.core.logging.Logger
+import io.vertx.example.exceptions.UnauthorizedException
 import io.vertx.example.foundation.KRouter
-import io.vertx.example.foundation.Loggable
 import io.vertx.example.foundation.Middleware
+import mu.KotlinLogging
 
-class BasicAuth : KRouter(), Middleware, Loggable {
-    override val logger: Logger = createLogger()
+class BasicAuth : KRouter(), Middleware {
+    private val logger = KotlinLogging.logger { }
 
     init {
         route().handleCoroutine { req, res, next ->
@@ -15,7 +14,7 @@ class BasicAuth : KRouter(), Middleware, Loggable {
                 next()
             } else {
                 logger.info("unauthorized access")
-                res.setStatusCode(401).end(Json.encode(mapOf("message" to "unauthorized")))
+                throw UnauthorizedException
             }
         }
     }

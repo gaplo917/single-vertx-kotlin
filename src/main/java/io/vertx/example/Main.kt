@@ -6,6 +6,7 @@ import com.github.salomonbrys.kodein.provider
 import io.vertx.core.Handler
 import io.vertx.example.foundation.KExpress
 import io.vertx.example.middlewares.BasicAuth
+import io.vertx.example.middlewares.GlobalFailureHandler
 import io.vertx.example.middlewares.Logging
 import io.vertx.example.repositories.UserRepository
 import io.vertx.example.repositories.UserRepositoryImpl
@@ -25,7 +26,6 @@ val Injection = Kodein {
 }
 
 fun main(args: Array<String>) {
-    val logger = KotlinLogging.logger { }
 
     val app = KExpress()
 
@@ -37,10 +37,8 @@ fun main(args: Array<String>) {
 
     app.use("/users", UserRouter())
 
-    app.use(Handler { e: Throwable ->
-        logger.error { "exception handler, e=${e.message}" }
-    })
+    app.use(GlobalFailureHandler)
 
-    app.listen(8080)
+    app.listen()
 }
 
