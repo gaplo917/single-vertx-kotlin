@@ -2,15 +2,15 @@ package io.vertx.example.middlewares
 
 import io.vertx.example.exceptions.UnauthorizedException
 import io.vertx.example.foundation.KRouter
-import io.vertx.example.foundation.Middleware
+import io.vertx.example.foundation.KMiddleware
 import mu.KotlinLogging
 
-class BasicAuth : KRouter(), Middleware {
+class BasicAuth : KMiddleware() {
     private val logger = KotlinLogging.logger { }
 
     init {
-        route().handleCoroutine { req, res, next ->
-            if(req.headers()["Basic"] == "testing") {
+        route { req, res, next ->
+            if(req.get("Basic") == "testing") {
                 next()
             } else {
                 logger.info("unauthorized access")

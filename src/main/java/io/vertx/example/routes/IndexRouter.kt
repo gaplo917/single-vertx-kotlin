@@ -3,8 +3,10 @@ package io.vertx.example.routes
 import io.vertx.example.foundation.KRouter
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.delay
+import mu.KotlinLogging
 
 class IndexRouter : KRouter() {
+    private val logger = KotlinLogging.logger {  }
 
     init {
         get("/"){ _ ,res ->

@@ -2,22 +2,22 @@ package io.vertx.example.foundation
 
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerRequest
-import io.vertx.core.http.HttpServerResponse
-import io.vertx.core.json.Json
+import io.vertx.example.extensions.vertx.toKExpressRequest
+import io.vertx.example.extensions.vertx.toKResponse
 import io.vertx.example.foundation.KExpress.Companion.dispatcher
 import io.vertx.example.foundation.KExpress.Companion.vertx
 import io.vertx.ext.web.Route
 import io.vertx.ext.web.Router
-import io.vertx.ext.web.RoutingContext
 import kotlinx.coroutines.experimental.launch
 
-@Suppress("NOTHING_TO_INLINE")
-abstract class KRouter : Router by Router.router(vertx) {
-    inline fun Route.handleCoroutine(noinline f: suspend (RoutingContext) -> Unit): Route {
+abstract class KRouter {
+    val vertxRouter = Router.router(vertx)
+
+    inline fun <T> Route.handleCoroutine(clazz: Class<T>, noinline f: suspend (KRequest<T>, KResponse, () -> Unit) -> Unit): Route {
         return this.handler { ctx ->
             launch(dispatcher) {
                 try {
-                    f(ctx)
+                    f(ctx.toKExpressRequest(clazz),ctx.toKResponse(), ctx::next)
                 } catch (e: Throwable) {
                     ctx.fail(e)
                 }
@@ -25,55 +25,91 @@ abstract class KRouter : Router by Router.router(vertx) {
         }
     }
 
-    inline fun Route.handleCoroutine(noinline f: suspend (HttpServerRequest, HttpServerResponse) -> Unit): Route {
-        return this.handleCoroutine { ctx -> f(ctx.request(), ctx.response()) }
+    inline fun <T> Route.handleCoroutine(clazz: Class<T>, noinline f: suspend (KRequest<T>, KResponse) -> Unit): Route {
+        return handleCoroutine(clazz) { req, res, _ -> f(req, res) }
     }
 
-    inline fun Route.handleCoroutine(noinline f: suspend (HttpServerRequest, HttpServerResponse, () -> Unit) -> Unit): Route {
-        return this.handleCoroutine { ctx -> f(ctx.request(), ctx.response(), ctx::next) }
+    inline fun <T> Route.handleCoroutine(clazz: Class<T>, noinline f: suspend (KRequest<T>) -> Unit): Route {
+        return handleCoroutine(clazz) { req, _, _ -> f(req) }
     }
 
-    inline fun Router.get(path: String, noinline f: suspend (RoutingContext) -> Unit): Route {
-        return this.get(path).handleCoroutine(f)
+    /**
+     * GET
+     */
+    fun get(path: String, f: suspend (KRequest<Unit>, KResponse, () -> Unit) -> Unit): Route {
+        return vertxRouter.get(path).handleCoroutine(Unit::class.java) { req, res, next -> f(req, res, next) }
     }
 
-    inline fun Router.get(path: String, noinline f: suspend (HttpServerRequest, HttpServerResponse) -> Unit): Route {
-        return this.get(path).handleCoroutine(f)
+    fun get(path: String, f: suspend (KRequest<Unit>, KResponse) -> Unit): Route {
+        return get(path){ req, res, _ -> f(req, res) }
     }
 
-    inline fun Router.get(path: String, noinline f: suspend (HttpServerRequest, HttpServerResponse, () -> Unit) -> Unit): Route {
-        return this.get(path).handleCoroutine(f)
+    fun get(path: String, f: suspend (KRequest<Unit>) -> Unit): Route {
+        return get(path){ req, _, _ -> f(req) }
     }
 
-    inline fun Route.failure(crossinline f: (Throwable) -> Unit): Route {
-        return this.failureHandler { ctx -> f(ctx.failure())  }
+    /**
+     * POST
+     */
+    fun post(path: String, f: suspend (KRequest<Buffer>, KResponse, () -> Unit) -> Unit): Route {
+        return vertxRouter.post(path).handleCoroutine(Buffer::class.java){ req, res, next -> f(req, res, next) }
     }
 
-    inline fun Route.failure(crossinline f: (Throwable, RoutingContext) -> Unit): Route {
-        return this.failureHandler { ctx -> f(ctx.failure(), ctx)  }
+    fun post(path: String, f: suspend (KRequest<Buffer>, KResponse) -> Unit): Route {
+        return post(path){ req, res, _ -> f(req, res) }
     }
 
-    inline fun Route.failure(crossinline f: (Throwable, HttpServerRequest, HttpServerResponse) -> Unit): Route {
-        return this.failureHandler { ctx -> f(ctx.failure(), ctx.request(), ctx.response())  }
+    fun post(path: String, f: suspend (KRequest<Buffer>) -> Unit): Route {
+        return post(path){ req, _, _ -> f(req) }
     }
 
-    inline fun Route.failure(crossinline f: (Throwable, HttpServerRequest, HttpServerResponse, () -> Unit) -> Unit): Route {
-        return this.failureHandler { ctx -> f(ctx.failure(), ctx.request(), ctx.response(), ctx::next)  }
+    fun <T: Any> post(path: String, clazz: Class<T>, f: suspend (KRequest<T>, KResponse, () -> Unit) -> Unit): Route {
+        return vertxRouter.post(path).handleCoroutine(clazz){ req, res, next -> f(req, res, next) }
     }
 
-    inline fun HttpServerResponse.send(chunk: String) {
-        this.end(chunk)
+    fun <T: Any> post(path: String, clazz: Class<T>, f: suspend (KRequest<T>, KResponse) -> Unit): Route {
+        return post(path, clazz){ req, res, _ ->
+            f(req, res)
+        }
     }
 
-    inline fun HttpServerResponse.send(chunk: Buffer) {
-        this.end(chunk)
+    fun <T: Any> post(path: String, clazz: Class<T>, f: suspend (KRequest<T>) -> Unit): Route {
+        return post(path, clazz){ req, _, _ ->
+            f(req)
+        }
     }
 
-    inline fun HttpServerResponse.send(chunk: String, enc: String) {
-        this.end(chunk, enc)
+    fun use(path: String, subRouter: KRouter) {
+        vertxRouter.mountSubRouter(path, subRouter.vertxRouter)
     }
 
-    inline fun HttpServerResponse.json(obj: Any) {
-        this.putHeader("Content-Type", "application/json").end(Json.encode(obj))
+    fun use(path: String, vararg subRouters: KRouter) {
+        subRouters.forEach { use(path, it) }
+    }
+
+    fun use(path: String, subRouters: List<KRouter>) {
+        subRouters.forEach { use(path, it) }
+    }
+
+    fun use(middleware: KMiddleware) {
+        use("/", middleware)
+    }
+
+    fun use(f: FailureHandler) {
+        vertxRouter.route().failureHandler { ctx -> f(ctx.failure(), ctx.request(), ctx.response(), ctx::next) }
+    }
+
+    protected fun accept(request: HttpServerRequest) {
+        vertxRouter.accept(request)
+    }
+
+    fun route(): Route {
+        return vertxRouter.route()
+    }
+
+    fun route(f: suspend (KRequest<Unit>, KResponse, () -> Unit) -> Unit): Route {
+        return vertxRouter.route().handleCoroutine(Unit::class.java){ req, res, next ->
+            f(req, res, next)
+        }
     }
 }

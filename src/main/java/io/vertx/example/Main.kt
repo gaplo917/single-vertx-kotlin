@@ -6,6 +6,7 @@ import com.github.salomonbrys.kodein.provider
 import io.vertx.core.Handler
 import io.vertx.example.foundation.KExpress
 import io.vertx.example.middlewares.BasicAuth
+import io.vertx.example.middlewares.BodyParser
 import io.vertx.example.middlewares.GlobalFailureHandler
 import io.vertx.example.middlewares.Logging
 import io.vertx.example.repositories.UserRepository
@@ -28,6 +29,8 @@ val Injection = Kodein {
 fun main(args: Array<String>) {
 
     val app = KExpress()
+
+    app.use(BodyParser())
 
     app.use(Logging())
 

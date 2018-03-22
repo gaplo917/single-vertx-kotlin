@@ -24,7 +24,7 @@ open class KExpress : KRouter() {
 
     fun listen(port: Int = config.getInt("http.server.port")) {
         vertx.createHttpServer()
-                .requestHandler(::accept)
+                .requestHandler { accept(it) }
                 .listen(port) { result ->
                     if (result.succeeded()) {
                         logger.debug { "KExpress is listening to port: $port" }
@@ -32,33 +32,6 @@ open class KExpress : KRouter() {
                         logger.error { result.cause() }
                     }
                 }
-    }
-
-    /**
-     * express liked API
-     */
-    fun use(path: String, subRouter: Router) {
-        mountSubRouter(path, subRouter)
-    }
-
-    fun use(path: String, vararg subRouters: Router) {
-        subRouters.forEach {
-            mountSubRouter(path, it)
-        }
-    }
-
-    fun use(path: String, subRouters: List<Router>) {
-        subRouters.forEach {
-            mountSubRouter(path, it)
-        }
-    }
-
-    fun use(middleware: Middleware) {
-        mountSubRouter("/", middleware)
-    }
-
-    fun use(f: FailureHandler) {
-        route().failureHandler { ctx -> f(ctx.failure(), ctx.request(), ctx.response(), ctx::next) }
     }
 
 }

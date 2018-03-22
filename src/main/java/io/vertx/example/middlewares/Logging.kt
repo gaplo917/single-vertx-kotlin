@@ -1,15 +1,15 @@
 package io.vertx.example.middlewares
 
 import io.vertx.example.foundation.KRouter
-import io.vertx.example.foundation.Middleware
+import io.vertx.example.foundation.KMiddleware
 import mu.KotlinLogging
 
-class Logging : KRouter(), Middleware {
+class Logging : KMiddleware() {
     private val logger = KotlinLogging.logger { }
 
     init {
-        route().handleCoroutine { req, _, next ->
-            logger.debug(req.path())
+        route { req, _, next ->
+            logger.debug(req.path)
             next()
         }
     }
