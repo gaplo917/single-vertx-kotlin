@@ -13,7 +13,6 @@ object UnauthorizedException: KExpressException (
         prodMessage = "uauthorized"
 )
 
-
 data class MissParamException(
         private val missingKey: String
 ): KExpressException (
@@ -28,4 +27,12 @@ data class RequestPayloadDeserializeException(
         statusCode = 400,
         debugMessage = "$errorMessage",
         prodMessage = "Invalid request payload."
+)
+
+data class ResourceNotFoundExcpetion(
+        private val errorMessage: String
+): KExpressException (
+        statusCode = 400,
+        debugMessage = errorMessage,
+        prodMessage = errorMessage
 )
