@@ -85,6 +85,8 @@ jooq {
                 records = true
                 immutablePojos = true
                 fluentSetters = true
+                daos = true
+                interfaces = true
             }
             target {
                 packageName = 'io.vertx.example.jooq'
